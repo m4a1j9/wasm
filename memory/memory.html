@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WASM</title>
+  </head>
+
+  <body>
+    <script>
+      var memory = new WebAssembly.Memory({
+        initial: 256,
+        maximum: 512,
+      });
+
+      var exports;
+      WebAssembly.instantiateStreaming(fetch("memory.wasm"), {
+        js: { mem: memory },
+      }).then((res) => {
+        exports = res.instance.exports;
+        memory = res.instance.exports.memory;
+      });
+
+      function runWasm() {
+        var arr = new Uint32Array(memory.buffer);
+        for (var i = 0; i < 10; i++) {
+          arr[i] = i * 2;
+        }
+
+        // we pass 0 to the pointer cause the arr starts form 0 memory
+        var sum = exports.accumulate(0, 10);
+
+        document.querySelector("#out").innerHTML += `${sum}<br>`;
+      }
+    </script>
+
+    <input type="number" id="a" />
+    <button onclick="runWasm()">trigger</button>
+
+    <p id="out"></p>
+  </body>
+</html>

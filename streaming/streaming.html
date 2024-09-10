@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WASM</title>
+  </head>
+
+  <body>
+    <script>
+      let exports;
+      WebAssembly.instantiateStreaming(fetch("streaming.wasm"), {}).then(
+        (res) => {
+          exports = res.instance.exports;
+        },
+      );
+
+      function runWasm() {
+        const value = document.querySelector("#a").value;
+
+        const sum = exports.sumOfInts(value);
+
+        document.querySelector("#out").innerHTML += `${value} => ${sum}<br />`
+      }
+    </script>
+
+    <input type="number" id="a" />
+    <button onclick="runWasm()">trigger</button>
+
+    <p id="out"></p>
+  </body>
+</html>
