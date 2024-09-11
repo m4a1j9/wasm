@@ -30,10 +30,24 @@
 
         document.querySelector("#out").innerHTML += `${sum}<br>`;
       }
+
+      function getString() {
+        var ptr = exports.getString();
+        var bytes = new Uint8Array(memory.buffer, ptr);
+        var strlen = 0;
+        while (bytes[strlen] !== 0) strlen++;
+
+        // hwo the bytes array gets the string if we point only on the first character?
+        // cause the array gets all memoty, form the first pointer throught the end.
+        var str = new TextDecoder("utf8").decode(bytes.slice(0, strlen));
+        console.log(str);
+        navigator.clipboard.writeText(str);
+      }
     </script>
 
     <input type="number" id="a" />
     <button onclick="runWasm()">trigger</button>
+    <button onclick="getString()">Copy string</button>
 
     <p id="out"></p>
   </body>

@@ -1,4 +1,5 @@
 #include <emscripten.h>
+#include <stdlib.h>
 
 int main()
 {
@@ -21,4 +22,16 @@ EMSCRIPTEN_KEEPALIVE
 const char *getString()
 {
   return "Hello world";
+}
+
+EMSCRIPTEN_KEEPALIVE
+void *wasmmalloc(size_t n)
+{
+  return malloc(n);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void wasmfree(void *ptr)
+{
+  free(ptr);
 }

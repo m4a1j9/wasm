@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WASM</title>
+  </head>
+
+  <body>
+    <script>
+      var memory = new WebAssembly.Memory({
+        initial: 256,
+        maximum: 512,
+      });
+
+      var exports;
+      WebAssembly.instantiateStreaming(fetch("malloc.wasm"), {
+        js: { mem: memory },
+        env: {
+          emscripten_resize_heap: function (delta) {
+            memory.grow(delta);
+          },
+        },
+      }).then((res) => {
+        exports = res.instance.exports;
+        memory = res.instance.exports.memory;
+      });
+
+      function runWasm() {
+        var arr = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20];
+        // 4 bytes per integer
+        var ptr = encodeArray(arr, arr.length, 4);
+
+        // we pass 0 to the pointer cause the arr starts form 0 memory
+        var sum = exports.accumulate(ptr, arr.length);
+
+        // очищаем помять до/от выделенной ячейки?
+        exports.wasmfree(ptr);
+
+        document.querySelector("#out").innerHTML += `${sum}<br>`;
+      }
+
+      function getString() {
+        var ptr = exports.getString();
+        var str = decodeString(ptr);
+        console.log(str);
+        navigator.clipboard.writeText(str);
+      }
+
+      function encodeArray(
+        arr,
+        len,
+        sizeof = 1, // bytes per element
+      ) {
+        var ptr;
+        var out;
+        if (sizeof === 8) {
+          ptr = exports.wasmmalloc(len * sizeof);
+          // создаем массив в указнном блоке памяти, сдвинутым на определенное количество байт (ptr)
+          out = new BigUint64Array(memory.buffer, ptr);
+        } else if (sizeof === 4) {
+          ptr = exports.wasmmalloc(len * sizeof);
+          out = new Uint32Array(memory.buffer, ptr);
+        } else {
+          ptr = exports.wasmmalloc(len);
+          out = new Uint8Array(memory.buffer, ptr);
+        }
+
+        for (var i = 0; i < len; i++) {
+          out[i] = arr[i];
+        }
+
+        // указываем на последнюю ячейку памяти
+        return ptr;
+      }
+
+      function decodeArray(ptr, len) {
+        return new Uint8Array(memory.buffer).slice(ptr, ptr + len);
+      }
+
+      function decodeString(ptr, len) {
+        return new TextDecoder('utf8').decode(decodeArray(ptr, len));
+      }
+
+      function decodeString(ptr) {
+        var bytes = new Uint8Array(memory.buffer, ptr);
+        var strlen = 0;
+        while (bytes[strlen] !== 0) strlen++;
+
+        // hwo the bytes array gets the string if we point only on the first character?
+        // cause the array gets all memoty, form the first pointer throught the end.
+
+        // we set start as 0, cause the bytes array already created with the ptr offset
+        return new TextDecoder("utf8").decode(bytes.slice(0, strlen));
+      }
+    </script>
+
+    <input type="number" id="a" />
+    <button onclick="runWasm()">trigger</button>
+    <button onclick="getString()">Copy string</button>
+
+    <p id="out"></p>
+  </body>
+</html>
